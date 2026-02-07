@@ -1,39 +1,40 @@
 import os
 import telebot
 import google.generativeai as genai
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
-# Берем ключи
+# Настройка ключей
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 GEMINI_KEY = os.getenv('GEMINI_KEY')
 
 genai.configure(api_key=GEMINI_KEY)
-
-# Пробуем разные варианты названий моделей
-model_to_use = None
-for name in ['gemini-1.5-flash', 'models/gemini-1.5-flash', 'gemini-pro']:
-    try:
-        model = genai.GenerativeModel(name)
-        # Пробная генерация, чтобы проверить модель
-        model_to_use = model
-        print(f"Выбрана модель: {name}")
-        break
-    except:
-        continue
-
+# Используем стабильное название модели
+model = genai.GenerativeModel('gemini-1.5-flash')
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
+
+# Фейковый сервер для Render
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+def run_health_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
+    server.serve_forever()
 
 @bot.message_handler(func=lambda m: True)
 def chat(message):
     try:
-        if not model_to_use:
-            bot.reply_to(message, "Ошибка: Не удалось найти рабочую модель Gemini.")
-            return
-            
-        response = model_to_use.generate_content(message.text)
+        response = model.generate_content(message.text)
         bot.reply_to(message, response.text)
     except Exception as e:
-        bot.reply_to(message, f"Ошибка: {e}")
+        bot.reply_to(message, f"Ошибка Gemini: {e}")
 
 if name == "main":
+    # Запускаем сервер в отдельном потоке, чтобы Render видел активность
+    threading.Thread(target=run_health_server, daemon=True).start()
     print("Бот запущен!")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
