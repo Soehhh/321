@@ -16,7 +16,7 @@ def chat(message):
         response = model.generate_content(message.text)
         bot.reply_to(message, response.text)
     except Exception as e:
-        bot.reply_to(message, "Ошибка: {str(e)}")
+        bot.reply_to(message, f"Ошибка: {str(e)}")
 
 if __name__ == "__main__":
     print("123")
