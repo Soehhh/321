@@ -18,6 +18,6 @@ def chat(message):
     except Exception as e:
         bot.reply_to(message, "Ошибка, попробуй позже.")
 
-if name == "main":
-    print("Бот запущен!")
+if __name__ == "__main__":
+    print("123")
     bot.infinity_polling()
