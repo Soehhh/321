@@ -33,7 +33,7 @@ def chat(message):
     except Exception as e:
         bot.reply_to(message, f"Ошибка: {e}")
 
-if name == "main":
+if __name__ == "__main__":
     # Запускаем сервер в фоне
     threading.Thread(target=run_health_server, daemon=True).start()
     print("Бот запущен!")
