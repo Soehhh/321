@@ -1,40 +1,28 @@
 import os
 import telebot
 import google.generativeai as genai
-import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
 
-# Настройка ключей
+# Получаем ключи из настроек (Environment Variables)
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 GEMINI_KEY = os.getenv('GEMINI_KEY')
 
+# Настройка нейросети
 genai.configure(api_key=GEMINI_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
+
+# Настройка бота
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# 1. Фейковый сервер для Render (чтобы не выключался)
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Bot is running")
-
-def run_health_server():
-    port = int(os.environ.get("PORT", 8080))
-    server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
-    server.serve_forever()
-
-# 2. Логика бота
 @bot.message_handler(func=lambda m: True)
 def chat(message):
     try:
+        # Отправляем текст в Gemini
         response = model.generate_content(message.text)
+        # Отвечаем пользователю
         bot.reply_to(message, response.text)
     except Exception as e:
         bot.reply_to(message, f"Ошибка: {e}")
 
 if __name__ == "__main__":
-    # Запускаем сервер в фоне
-    threading.Thread(target=run_health_server, daemon=True).start()
-    print("Бот запущен!")
-    bot.infinity_polling(timeout=10, long_polling_timeout=5)
+    print("Бот успешно запущен!")
+    bot.infinity_polling()
